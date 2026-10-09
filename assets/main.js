@@ -1,1 +1,19 @@
-
+(function(){
+  const toggle=document.querySelector('.menu-toggle');
+  const nav=document.querySelector('.nav-links');
+  if(toggle&&nav){toggle.addEventListener('click',()=>{const open=nav.classList.toggle('open');toggle.setAttribute('aria-expanded',String(open));});nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');toggle.setAttribute('aria-expanded','false')}));}
+  const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Number.isFinite(n)?n:0);
+  const num=(id)=>{const el=document.getElementById(id); if(!el)return 0; const v=Number(el.value);return Number.isFinite(v)?v:0};
+  const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+  function updateElectric(){const kwh=clamp(num('electric-kwh'),0,1000000),rate=clamp(num('electric-rate'),0,100000),reduction=clamp(num('electric-reduction'),0,100);const base=kwh*rate/100,after=base*(1-reduction/100),diff=base-after;set('electric-base',money(base));set('electric-after',money(after));set('electric-monthly',money(diff));set('electric-annual',money(diff*12));}
+  function updateSolar(){const bill=clamp(num('solar-bill'),0,100000),offset=clamp(num('solar-offset'),0,100),cost=clamp(num('solar-cost'),0,100000000),incentive=clamp(num('solar-incentive'),0,cost);const annual=bill*12,savings=annual*offset/100,net=cost-incentive;set('solar-annual',money(annual));set('solar-reduction',money(savings));set('solar-net',money(net));set('solar-payback',savings>0&&net>0?(net/savings).toFixed(1)+' years':(net===0?'$0 net cost':'Not meaningful with these inputs'));set('solar-note',savings>0?'Simple payback excludes financing, maintenance, utility rate changes, degradation, export rules and other costs.':'Enter a bill offset above 0% to estimate simple payback.');}
+  function updateProject(){const mat=clamp(num('project-materials'),0,100000000),labor=clamp(num('project-labor'),0,100000000),permits=clamp(num('project-permits'),0,100000000),pct=clamp(num('project-contingency'),0,100);const sub=mat+labor+permits,cont=sub*pct/100;set('project-subtotal',money(sub));set('project-contingency-result',money(cont));set('project-total',money(sub+cont));}
+  function updateHVAC(){const cost=clamp(num('hvac-cost'),0,100000),pct=clamp(num('hvac-improvement'),0,100),save=cost*pct/100;set('hvac-new',money(cost-save));set('hvac-monthly',money(save));set('hvac-annual',money(save*12));}
+  function updateMaintenance(){const monthly=clamp(num('maint-recurring'),0,1000000),annual=clamp(num('maint-one-time'),0,10000000),emergency=clamp(num('maint-reserve'),0,10000000);const total=monthly*12+annual+emergency;set('maint-annual',money(total));set('maint-monthly',money(total/12));}
+  function updateSize(){const annual=clamp(num('size-usage'),0,10000000),production=clamp(num('size-production'),1,2500),offset=clamp(num('size-offset'),0,100);const needed=annual*offset/100/production;set('size-kw',needed.toFixed(2)+' kW');set('size-panels',Math.ceil(needed*1000/400)+' panels (illustrative 400 W panels)');}
+  function set(id,value){const el=document.getElementById(id);if(el)el.textContent=value;}
+  const groups={electric:['electric-kwh','electric-rate','electric-reduction'],solar:['solar-bill','solar-offset','solar-cost','solar-incentive'],project:['project-materials','project-labor','project-permits','project-contingency'],hvac:['hvac-cost','hvac-improvement'],maintenance:['maint-recurring','maint-one-time','maint-reserve'],size:['size-usage','size-production','size-offset']};
+  const funcs={electric:updateElectric,solar:updateSolar,project:updateProject,hvac:updateHVAC,maintenance:updateMaintenance,size:updateSize};
+  Object.keys(groups).forEach(g=>{groups[g].forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener('input',funcs[g]);el.addEventListener('change',funcs[g]);}});funcs[g]();});
+  document.querySelectorAll('[data-current-year]').forEach(el=>el.textContent=new Date().getFullYear());
+})();
